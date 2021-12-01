@@ -19,7 +19,9 @@ Queue.prototype = {
     }
     return false
   },
-
+  empty: function () { 
+    return this.jobs = []; 
+  },
   canBeAdded: function (job) {
     if (this.isScraped(job.url)) {
       return false
@@ -52,6 +54,7 @@ Queue.prototype = {
       return false
     }
   }
+ 
 }
 
 module.exports = Queue
