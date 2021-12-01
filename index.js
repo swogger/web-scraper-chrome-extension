@@ -26,7 +26,7 @@ function scrape (sitemapInfo, options = {}) {
     const fakeDocument = {}
     const fake$ = {}
     const q = new Queue()
-    const store = new InMemoryStore()
+    const store = new InMemoryStore(options.realtimeCallback)
     const sitemap = new Sitemap(sitemapInfo, {$: fake$, document: fakeDocument, window: fakeWindow})
 
     let BrowserConstructor
