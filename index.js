@@ -1,64 +1,47 @@
 const Queue = require('./extension/scripts/Queue')
 const Sitemap = require('./extension/scripts/Sitemap')
 const InMemoryStore = require('./extension/scripts/InMemoryStore')
-const Scraper = require('./extension/scripts/Scraper')
-const debug = require('debug')('web-scraper-headless:index')
-const JSDOMBrowser = require('./extension/scripts/JSDOMBrowser')
+const Scraper = require('./extension/scripts/Scraper') 
 const ChromeHeadlessBrowser = require('./extension/scripts/ChromeHeadlessBrowser')
-/**
- *
- * @param sitemap
- * @param options
- * @param options.browser jsdom|headless
- * @param options.pageLoadDelay
- * @param options.delay
- * @return {*}
- */
-module.exports = function (sitemap, options) {
-  return scrape(sitemap, options)
+
+function createScraper (sitemapInfo, options = {}) {
+
+  const q = new Queue()
+  const store = new InMemoryStore(options.realtimeCallback)
+  const sitemap = new Sitemap(sitemapInfo, {$: {}, document: {}, window: {}})
+  const browser = new ChromeHeadlessBrowser({
+    pageLoadDelay: options.pageLoadDelay || 2000
+  })
+
+  const s = new Scraper({
+    queue: q,
+    sitemap,
+    browser,
+    store,
+    delay: options.delay || 500
+  }, {})
+
+  return s;
 }
 
-function scrape (sitemapInfo, options = {}) {
-  return new Promise(function (resolve, reject) {
-    // sitemap is created twice, once in node another in the browser context.
-    // In node we don't actually need these variables.
-    const fakeWindow = {}
-    const fakeDocument = {}
-    const fake$ = {}
-    const q = new Queue()
-    const store = new InMemoryStore(options.realtimeCallback)
-    const sitemap = new Sitemap(sitemapInfo, {$: fake$, document: fakeDocument, window: fakeWindow})
+module.exports = function (sitemap, options) {
 
-    let BrowserConstructor
-    switch (options.browser) {
-      case 'jsdom':
-        BrowserConstructor = JSDOMBrowser
-        debug('Jsdom browser selected')
-        break
-      case 'headless':
-        BrowserConstructor = ChromeHeadlessBrowser
-        debug('Chrome headless browser selected')
-        break
-      default:
-        debug('No browser requested so jsdom was selected as default')
-        BrowserConstructor = JSDOMBrowser
-    }
-    const browser = new BrowserConstructor({
-      pageLoadDelay: options.pageLoadDelay || 2000
-    })
-    const s = new Scraper({
-      queue: q,
-      sitemap,
-      browser,
-      store,
-      delay: options.delay || 500
-    }, {})
-    s.run(function (err) {
-      if (err) {
-        reject(err)
-      } else {
-        resolve(store.data)
-      }
-    })
-  })
+  const scraper = createScraper(sitemap, options);
+
+  const scrape = ()=>{
+
+    return new Promise((resolve, reject) => {
+      scraper.run((err)=>{
+        if(err) reject(err)
+        else resolve(scraper.store.data);
+      });
+    });
+
+  }
+
+  return {
+    scrape: scrape,  
+    stop:()=>{scraper.stop();}
+  }
+
 }

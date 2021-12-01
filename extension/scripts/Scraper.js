@@ -1,6 +1,7 @@
 var whenCallSequentially = require('../assets/jquery.whencallsequentially')
 var Job = require('./Job')
 const debug = require('debug')('web-scraper-headless:scraper')
+
 var Scraper = function (options, moreOptions) {
   this.queue = options.queue
   this.sitemap = options.sitemap
@@ -17,6 +18,7 @@ Scraper.prototype = {
 	 * Scraping delay between two page opening requests
 	 */
   requestInterval: 2000,
+
   _timeNextScrapeAvailable: 0,
 
   initFirstJobs: function () {
@@ -75,6 +77,10 @@ Scraper.prototype = {
     return browser.saveImages(record, namingFunction.bind(this))
 
     function namingFunction (selectorId) { return this.sitemap._id + '/' + selectorId + '/' + this.getFileFilename(record[selectorId + '-src']) }
+  },
+
+  stop: function(){
+    this.queue.empty();
   },
 
 	// @TODO remove recursion and add an iterative way to run these jobs.
